@@ -23,6 +23,8 @@
 
 @property (nonatomic, readonly) CGFloat visibleKeyboardHeight;
 
+@property (nonatomic) BOOL shouldHide;
+
 - (void)showWithStatus:(NSString*)string maskType:(SVProgressHUDMaskType)hudMaskType networkIndicator:(BOOL)show;
 - (void)setStatus:(NSString*)string;
 - (void)registerNotifications;
@@ -33,29 +35,39 @@
 - (void)dismissWithStatus:(NSString*)string error:(BOOL)error;
 - (void)dismissWithStatus:(NSString*)string error:(BOOL)error afterDelay:(NSTimeInterval)seconds;
 
+- (void)singleTap:(id)sender;
+
 @end
 
 
-@implementation SVProgressHUD
+@implementation SVProgressHUD {
+    UITapGestureRecognizer *tapRecognizer;
+}
 
 @synthesize overlayWindow, hudView, maskType, fadeOutTimer, stringLabel, imageView, spinnerView, visibleKeyboardHeight;
+@synthesize shouldHide;
 
 - (void)dealloc {
 	self.fadeOutTimer = nil;
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
-
 + (SVProgressHUD*)sharedView {
     static dispatch_once_t once;
     static SVProgressHUD *sharedView;
-    dispatch_once(&once, ^ { sharedView = [[SVProgressHUD alloc] initWithFrame:[[UIScreen mainScreen] bounds]]; });
+    dispatch_once(&once, ^ { 
+        sharedView = [[SVProgressHUD alloc] initWithFrame:[[UIScreen mainScreen] bounds]]; 
+    });
     return sharedView;
 }
 
 
 + (void)setStatus:(NSString *)string {
 	[[SVProgressHUD sharedView] setStatus:string];
+}
+
++ (void)setShouldHideByTap:(BOOL)shouldHide {
+    [[SVProgressHUD sharedView] setShouldHide:shouldHide];
 }
 
 #pragma mark - Show Methods
@@ -127,6 +139,8 @@
         self.backgroundColor = [UIColor clearColor];
 		self.alpha = 0;
         self.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        
+        self.shouldHide = NO;
     }
 	
     return self;
@@ -335,9 +349,10 @@
 
 - (void)showWithStatus:(NSString*)string maskType:(SVProgressHUDMaskType)hudMaskType networkIndicator:(BOOL)show {
     dispatch_async(dispatch_get_main_queue(), ^{
-        if(!self.superview)
+        if(!self.superview) {
             [self.overlayWindow addSubview:self];
-        
+        }
+            
         self.fadeOutTimer = nil;
         self.imageView.hidden = YES;
         self.maskType = hudMaskType;
@@ -345,11 +360,12 @@
         [self setStatus:string];
         [self.spinnerView startAnimating];
         
-        if(self.maskType != SVProgressHUDMaskTypeNone) {
+//        if(self.maskType != SVProgressHUDMaskTypeNone) {
+//            self.overlayWindow.userInteractionEnabled = YES;
+//        } else {
+//            self.overlayWindow.userInteractionEnabled = NO;
+//        }
             self.overlayWindow.userInteractionEnabled = YES;
-        } else {
-            self.overlayWindow.userInteractionEnabled = NO;
-        }
         
         [self.overlayWindow setHidden:NO];
         [self positionHUD:nil];
@@ -368,10 +384,21 @@
                              completion:NULL];
         }
         
+        if (!tapRecognizer) {
+            tapRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(singleTap:)];
+        }
+        [self.overlayWindow addGestureRecognizer:tapRecognizer];
+        
         [self setNeedsDisplay];
     });
 }
 
+
+- (void)singleTap:(id)sender {
+    if (self.shouldHide) {
+        [self dismiss];
+    }
+}
 
 - (void)dismissWithStatus:(NSString*)string error:(BOOL)error {
 	[self dismissWithStatus:string error:error afterDelay:0.9];
@@ -399,6 +426,8 @@
 - (void)dismiss {
     dispatch_async(dispatch_get_main_queue(), ^{
 
+        [self.overlayWindow removeGestureRecognizer:tapRecognizer];
+        
         [UIView animateWithDuration:0.15
                               delay:0
                             options:UIViewAnimationCurveEaseIn | UIViewAnimationOptionAllowUserInteraction

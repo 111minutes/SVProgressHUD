@@ -24,7 +24,9 @@
 }
 
 - (void)showWithStatus {
-	[SVProgressHUD showWithStatus:@"Doing Stuff"];
+	//[SVProgressHUD showWithStatus:@"Doing Stuff"];
+    
+    [SVProgressHUD showSuccessWithStatus:@"bla" duration:10];
 }
 
 

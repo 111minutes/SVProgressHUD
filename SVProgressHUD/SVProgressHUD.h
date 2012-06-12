@@ -41,4 +41,6 @@ typedef NSUInteger SVProgressHUDMaskType;
 
 + (BOOL)isVisible;
 
++ (void)setShouldHideByTap:(BOOL)shouldHide;
+
 @end
