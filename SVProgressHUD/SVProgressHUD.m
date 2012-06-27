@@ -48,7 +48,7 @@
 @synthesize shouldHide;
 
 - (void)dealloc {
-	self.fadeOutTimer = nil;
+	fadeOutTimer = nil;
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
