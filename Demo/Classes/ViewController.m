@@ -40,7 +40,7 @@
 }
 
 - (void)showWithStatus {
-    [SVProgressHUD showSuccessWithStatus:@"bla" duration:10];
+    [SVProgressHUD showSuccessWithStatus:@"bla"];
 }
 
 - (void)showWithHidingOnTap {
@@ -57,11 +57,11 @@
 }
 
 - (void)dismissSuccess {
-	[SVProgressHUD dismissWithSuccess:@"Great Success!"];
+	[SVProgressHUD showSuccessWithStatus:@"Great Success!"];
 }
 
 - (void)dismissError {
-	[SVProgressHUD dismissWithError:@"Failed with Error"];
+	[SVProgressHUD showErrorWithStatus:@"Failed with Error"];
 }
 
 #pragma mark -
