@@ -45,7 +45,7 @@
 						<string key="NSFrame">{{30, 96}, {260, 44}}</string>
 						<reference key="NSSuperview" ref="126585098"/>
 						<reference key="NSWindow"/>
-						<reference key="NSNextKeyView" ref="670046422"/>
+						<reference key="NSNextKeyView" ref="442213990"/>
 						<bool key="IBUIOpaque">NO</bool>
 						<string key="targetRuntimeIdentifier">IBCocoaTouchFramework</string>
 						<int key="IBUIContentHorizontalAlignment">0</int>
@@ -75,6 +75,28 @@
 							<double key="NSSize">17</double>
 							<int key="NSfFlags">16</int>
 						</object>
+					</object>
+					<object class="IBUIButton" id="442213990">
+						<reference key="NSNextResponder" ref="126585098"/>
+						<int key="NSvFlags">301</int>
+						<string key="NSFrame">{{30, 157}, {260, 44}}</string>
+						<reference key="NSSuperview" ref="126585098"/>
+						<reference key="NSWindow"/>
+						<reference key="NSNextKeyView" ref="670046422"/>
+						<bool key="IBUIOpaque">NO</bool>
+						<string key="targetRuntimeIdentifier">IBCocoaTouchFramework</string>
+						<int key="IBUIContentHorizontalAlignment">0</int>
+						<int key="IBUIContentVerticalAlignment">0</int>
+						<int key="IBUIButtonType">1</int>
+						<string key="IBUINormalTitle">showWithHidingOnTap:</string>
+						<reference key="IBUIHighlightedTitleColor" ref="524652865"/>
+						<object class="NSColor" key="IBUINormalTitleColor">
+							<int key="NSColorSpace">1</int>
+							<bytes key="NSRGB">MC4xOTYwNzg0MzQ2IDAuMzA5ODAzOTMyOSAwLjUyMTU2ODY1NgA</bytes>
+						</object>
+						<reference key="IBUINormalTitleShadowColor" ref="934167192"/>
+						<reference key="IBUIFontDescription" ref="145541768"/>
+						<reference key="IBUIFont" ref="122504481"/>
 					</object>
 					<object class="IBUIButton" id="341658994">
 						<reference key="NSNextResponder" ref="126585098"/>
@@ -148,6 +170,7 @@
 						<string key="NSFrame">{{30, 364}, {260, 44}}</string>
 						<reference key="NSSuperview" ref="126585098"/>
 						<reference key="NSWindow"/>
+						<reference key="NSNextKeyView"/>
 						<bool key="IBUIOpaque">NO</bool>
 						<string key="targetRuntimeIdentifier">IBCocoaTouchFramework</string>
 						<int key="IBUIContentHorizontalAlignment">0</int>
@@ -231,6 +254,15 @@
 					</object>
 					<int key="connectionID">17</int>
 				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBCocoaTouchEventConnection" key="connection">
+						<string key="label">showWithHidingOnTap</string>
+						<reference key="source" ref="442213990"/>
+						<reference key="destination" ref="372490531"/>
+						<int key="IBEventType">7</int>
+					</object>
+					<int key="connectionID">29</int>
+				</object>
 			</object>
 			<object class="IBMutableOrderedSet" key="objectRecords">
 				<object class="NSArray" key="orderedObjects">
@@ -264,6 +296,7 @@
 							<reference ref="643745546"/>
 							<reference ref="820611637"/>
 							<reference ref="341658994"/>
+							<reference ref="442213990"/>
 						</object>
 						<reference key="parent" ref="0"/>
 					</object>
@@ -292,6 +325,11 @@
 						<reference key="object" ref="643745546"/>
 						<reference key="parent" ref="126585098"/>
 					</object>
+					<object class="IBObjectRecord">
+						<int key="objectID">27</int>
+						<reference key="object" ref="442213990"/>
+						<reference key="parent" ref="126585098"/>
+					</object>
 				</object>
 			</object>
 			<object class="NSMutableDictionary" key="flattenedProperties">
@@ -306,6 +344,7 @@
 					<string>13.IBPluginDependency</string>
 					<string>14.IBPluginDependency</string>
 					<string>15.IBPluginDependency</string>
+					<string>27.IBPluginDependency</string>
 					<string>8.IBPluginDependency</string>
 					<string>9.IBPluginDependency</string>
 				</object>
@@ -314,6 +353,7 @@
 					<string>ViewController</string>
 					<string>com.apple.InterfaceBuilder.IBCocoaTouchPlugin</string>
 					<string>UIResponder</string>
+					<string>com.apple.InterfaceBuilder.IBCocoaTouchPlugin</string>
 					<string>com.apple.InterfaceBuilder.IBCocoaTouchPlugin</string>
 					<string>com.apple.InterfaceBuilder.IBCocoaTouchPlugin</string>
 					<string>com.apple.InterfaceBuilder.IBCocoaTouchPlugin</string>
@@ -335,7 +375,7 @@
 				<reference key="dict.values" ref="0"/>
 			</object>
 			<nil key="sourceID"/>
-			<int key="maxID">26</int>
+			<int key="maxID">29</int>
 		</object>
 		<object class="IBClassDescriber" key="IBDocument.Classes">
 			<object class="NSMutableArray" key="referencedPartialClassDescriptions">
@@ -351,10 +391,12 @@
 							<string>dismissError</string>
 							<string>dismissSuccess</string>
 							<string>show</string>
+							<string>showWithHidingOnTap</string>
 							<string>showWithStatus</string>
 						</object>
 						<object class="NSArray" key="dict.values">
 							<bool key="EncodedWithXMLCoder">YES</bool>
+							<string>id</string>
 							<string>id</string>
 							<string>id</string>
 							<string>id</string>
@@ -370,6 +412,7 @@
 							<string>dismissError</string>
 							<string>dismissSuccess</string>
 							<string>show</string>
+							<string>showWithHidingOnTap</string>
 							<string>showWithStatus</string>
 						</object>
 						<object class="NSArray" key="dict.values">
@@ -391,6 +434,10 @@
 								<string key="candidateClassName">id</string>
 							</object>
 							<object class="IBActionInfo">
+								<string key="name">showWithHidingOnTap</string>
+								<string key="candidateClassName">id</string>
+							</object>
+							<object class="IBActionInfo">
 								<string key="name">showWithStatus</string>
 								<string key="candidateClassName">id</string>
 							</object>
@@ -405,10 +452,6 @@
 		</object>
 		<int key="IBDocument.localizationMode">0</int>
 		<string key="IBDocument.TargetRuntimeIdentifier">IBCocoaTouchFramework</string>
-		<object class="NSMutableDictionary" key="IBDocument.PluginDeclaredDependencyDefaults">
-			<string key="NS.key.0">com.apple.InterfaceBuilder.CocoaTouchPlugin.iPhoneOS</string>
-			<real value="1536" key="NS.object.0"/>
-		</object>
 		<object class="NSMutableDictionary" key="IBDocument.PluginDeclaredDevelopmentDependencies">
 			<string key="NS.key.0">com.apple.InterfaceBuilder.CocoaTouchPlugin.InterfaceBuilder3</string>
 			<integer value="3100" key="NS.object.0"/>

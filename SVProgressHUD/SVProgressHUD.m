@@ -321,7 +321,9 @@
         if (self.shouldRecieveTapInHudView) {
             [self.overlayWindow removeGestureRecognizer:_tapRecognizer];
             [self.hudView addGestureRecognizer:_tapRecognizer];
+            self.userInteractionEnabled = YES;
         } else {
+            self.userInteractionEnabled = NO;
             [self.hudView removeGestureRecognizer:_tapRecognizer];
             [self.overlayWindow addGestureRecognizer:_tapRecognizer];
         }
@@ -362,6 +364,7 @@
 
         if (self.shouldRecieveTapInHudView) {
             [self.hudView removeGestureRecognizer:_tapRecognizer];
+            self.userInteractionEnabled = NO;
         } else {
             [self.overlayWindow removeGestureRecognizer:_tapRecognizer];
         }
