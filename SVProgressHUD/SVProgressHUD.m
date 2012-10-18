@@ -12,7 +12,8 @@
 
 @interface SVProgressHUD ()
 
-@property (nonatomic, readwrite) SVProgressHUDMaskType maskType;
+@property (nonatomic, assign) SVProgressHUDMaskType maskType;
+
 @property (nonatomic, strong, readonly) NSTimer *fadeOutTimer;
 
 @property (nonatomic, strong, readonly) UIWindow *overlayWindow;
@@ -23,10 +24,12 @@
 
 @property (nonatomic, readonly) CGFloat visibleKeyboardHeight;
 
-@property (nonatomic) BOOL shouldHide;
+@property (nonatomic, assign) BOOL shouldHide;
+@property (nonatomic, assign) BOOL shouldRecieveTapInHudView;
 
-- (void)showWithStatus:(NSString*)string maskType:(SVProgressHUDMaskType)hudMaskType networkIndicator:(BOOL)show;
-- (void)setStatus:(NSString*)string;
+- (void)setStatus:(NSString *)string;
+- (void)showWithStatus:(NSString *)string maskType:(SVProgressHUDMaskType)hudMaskType networkIndicator:(BOOL)show;
+
 - (void)registerNotifications;
 - (void)moveToPoint:(CGPoint)newCenter rotateAngle:(CGFloat)angle;
 - (void)positionHUD:(NSNotification*)notification;
@@ -40,19 +43,20 @@
 @end
 
 
-@implementation SVProgressHUD {
-    UITapGestureRecognizer *tapRecognizer;
+@implementation SVProgressHUD
+{
+    UITapGestureRecognizer *_tapRecognizer;
+    UIWindow *_overlayWindow;
+    UIView *_hudView;
+    UILabel *_stringLabel;
+    UIImageView *_imageView;
+    UIActivityIndicatorView *_spinnerView;
 }
 
-@synthesize overlayWindow, hudView, maskType, fadeOutTimer, stringLabel, imageView, spinnerView, visibleKeyboardHeight;
-@synthesize shouldHide;
+#pragma mark -
+#pragma mark - Class methods
 
-- (void)dealloc {
-	fadeOutTimer = nil;
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
-}
-
-+ (SVProgressHUD*)sharedView {
++ (SVProgressHUD *)sharedView {
     static dispatch_once_t once;
     static SVProgressHUD *sharedView;
     dispatch_once(&once, ^ { 
@@ -61,6 +65,9 @@
     return sharedView;
 }
 
++ (BOOL)isVisible {
+    return ([SVProgressHUD sharedView].alpha == 1);
+}
 
 + (void)setStatus:(NSString *)string {
 	[[SVProgressHUD sharedView] setStatus:string];
@@ -68,6 +75,10 @@
 
 + (void)setShouldHideByTap:(BOOL)shouldHide {
     [[SVProgressHUD sharedView] setShouldHide:shouldHide];
+}
+
++ (void)setShouldRecieveTapInHudView:(BOOL)shouldRecieveTapInHudView {
+    [[SVProgressHUD sharedView] setShouldRecieveTapInHudView:shouldRecieveTapInHudView];
 }
 
 #pragma mark - Show Methods
@@ -106,7 +117,6 @@
     [SVProgressHUD dismissWithError:string afterDelay:duration];
 }
 
-
 #pragma mark - Dismiss Methods
 
 + (void)dismiss {
@@ -129,8 +139,16 @@
     [[SVProgressHUD sharedView] dismissWithStatus:errorString error:YES afterDelay:seconds];
 }
 
+#pragma mark -
+#pragma mark - Dealloc method
 
-#pragma mark - Instance Methods
+- (void)dealloc {
+	self.fadeOutTimer = nil;
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
+#pragma mark -
+#pragma mark - Initialization methods
 
 - (id)initWithFrame:(CGRect)frame {
 	
@@ -141,10 +159,14 @@
         self.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         
         self.shouldHide = NO;
+        self.shouldRecieveTapInHudView = NO;
     }
 	
     return self;
 }
+
+#pragma mark -
+#pragma mark - Draw Rect
 
 - (void)drawRect:(CGRect)rect {
     
@@ -176,6 +198,8 @@
         }
     }
 }
+
+#pragma mark -
 
 - (void)setStatus:(NSString *)string {
 	
@@ -214,45 +238,283 @@
 	self.stringLabel.text = string;
 	self.stringLabel.frame = labelRect;
 	
-	if(string)
+	if (string) {
 		self.spinnerView.center = CGPointMake(ceil(CGRectGetWidth(self.hudView.bounds)/2)+0.5, 40.5);
-	else
+    } else {
 		self.spinnerView.center = CGPointMake(ceil(CGRectGetWidth(self.hudView.bounds)/2)+0.5, ceil(self.hudView.bounds.size.height/2)+0.5);
+    }
 }
 
 - (void)setFadeOutTimer:(NSTimer *)newTimer {
     
-    if(fadeOutTimer)
-        [fadeOutTimer invalidate], fadeOutTimer = nil;
+    if(_fadeOutTimer) {
+        [_fadeOutTimer invalidate];
+        _fadeOutTimer = nil;
+    }
     
-    if(newTimer)
-        fadeOutTimer = newTimer;
+    if (newTimer) {
+        _fadeOutTimer = newTimer;
+    }
 }
 
+- (void)moveToPoint:(CGPoint)newCenter rotateAngle:(CGFloat)angle {
+    self.hudView.transform = CGAffineTransformMakeRotation(angle); 
+    self.hudView.center = newCenter;
+}
+
+- (void)singleTap:(id)sender {
+    
+    if (self.shouldHide) {
+        [self dismiss];
+    }
+    [[NSNotificationCenter defaultCenter] postNotificationName:SVProgressHUDTappedNotification
+                                                        object:self];
+}
+
+#pragma mark - Master show/dismiss methods
+
+- (void)showWithStatus:(NSString *)string
+              maskType:(SVProgressHUDMaskType)hudMaskType
+      networkIndicator:(BOOL)show {
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        
+        if(!self.superview) {
+            [self.overlayWindow addSubview:self];
+        }
+            
+        self.fadeOutTimer = nil;
+        self.imageView.hidden = YES;
+        self.maskType = hudMaskType;
+        
+        [self setStatus:string];
+        [self.spinnerView startAnimating];
+        
+//        if(self.maskType != SVProgressHUDMaskTypeNone) {
+//            self.overlayWindow.userInteractionEnabled = YES;
+//        } else {
+//            self.overlayWindow.userInteractionEnabled = NO;
+//        }
+            self.overlayWindow.userInteractionEnabled = YES;
+        
+        [self.overlayWindow setHidden:NO];
+        [self positionHUD:nil];
+        
+        if(self.alpha != 1) {
+            [self registerNotifications];
+            self.hudView.transform = CGAffineTransformScale(self.hudView.transform, 1.3, 1.3);
+            
+            [UIView animateWithDuration:0.15
+                                  delay:0
+                                options:UIViewAnimationOptionAllowUserInteraction | UIViewAnimationCurveEaseOut | UIViewAnimationOptionBeginFromCurrentState
+                             animations:^{	
+                                 self.hudView.transform = CGAffineTransformScale(self.hudView.transform, 1/1.3, 1/1.3);
+                                 self.alpha = 1;
+                             }
+                             completion:NULL];
+        }
+        
+        if (!_tapRecognizer) {
+            _tapRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(singleTap:)];
+        }
+        
+        if (self.shouldRecieveTapInHudView) {
+            [self.overlayWindow removeGestureRecognizer:_tapRecognizer];
+            [self.hudView addGestureRecognizer:_tapRecognizer];
+        } else {
+            [self.hudView removeGestureRecognizer:_tapRecognizer];
+            [self.overlayWindow addGestureRecognizer:_tapRecognizer];
+        }
+        
+        [self setNeedsDisplay];
+    });
+}
+
+- (void)dismissWithStatus:(NSString*)string error:(BOOL)error {
+	[self dismissWithStatus:string error:error afterDelay:0.9];
+}
+
+- (void)dismissWithStatus:(NSString *)string error:(BOOL)error afterDelay:(NSTimeInterval)seconds {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if(self.alpha != 1)
+            return;
+        
+        if(error) {
+            self.imageView.image = [UIImage imageNamed:@"SVProgressHUD.bundle/error.png"];
+        } else {
+            self.imageView.image = [UIImage imageNamed:@"SVProgressHUD.bundle/success.png"];
+        }
+        
+        self.imageView.hidden = NO;
+        [self setStatus:string];
+        [self.spinnerView stopAnimating];
+        
+        self.fadeOutTimer = [NSTimer scheduledTimerWithTimeInterval:seconds
+                                                             target:self
+                                                           selector:@selector(dismiss)
+                                                           userInfo:nil
+                                                            repeats:NO];
+    });
+}
+
+- (void)dismiss {
+    dispatch_async(dispatch_get_main_queue(), ^{
+
+        if (self.shouldRecieveTapInHudView) {
+            [self.hudView removeGestureRecognizer:_tapRecognizer];
+        } else {
+            [self.overlayWindow removeGestureRecognizer:_tapRecognizer];
+        }
+        
+        [UIView animateWithDuration:0.15
+                              delay:0
+                            options:UIViewAnimationCurveEaseIn | UIViewAnimationOptionAllowUserInteraction
+                         animations:^{	
+                             self.hudView.transform = CGAffineTransformScale(self.hudView.transform, 0.8, 0.8);
+                             self.alpha = 0;
+                         }
+                         completion:^(BOOL finished){ 
+                             if(self.alpha == 0) {
+                                 [[NSNotificationCenter defaultCenter] removeObserver:self];
+                                 [self.hudView removeFromSuperview];
+                                 _hudView = nil;
+
+                                 [_overlayWindow removeFromSuperview];
+                                 _overlayWindow = nil;
+                                 
+                                 // uncomment to make sure UIWindow is gone from app.windows
+                                 //NSLog(@"%@", [UIApplication sharedApplication].windows);
+                                 //NSLog(@"keyWindow = %@", [UIApplication sharedApplication].keyWindow);
+                             }
+                         }];
+    });
+}
+
+#pragma mark - Getters
+
+- (UIWindow *)overlayWindow {
+    if(!_overlayWindow) {
+        _overlayWindow = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
+        _overlayWindow.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        _overlayWindow.backgroundColor = [UIColor clearColor];
+        _overlayWindow.userInteractionEnabled = NO;
+    }
+    return _overlayWindow;
+}
+
+- (UIView *)hudView {
+    if(!_hudView) {
+        _hudView = [[UIView alloc] initWithFrame:CGRectZero];
+        _hudView.layer.cornerRadius = 10;
+		_hudView.backgroundColor = [UIColor colorWithWhite:0 alpha:0.8];
+        _hudView.autoresizingMask = (UIViewAutoresizingFlexibleBottomMargin | UIViewAutoresizingFlexibleTopMargin |
+                                    UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleLeftMargin);
+        
+        [self addSubview:_hudView];
+    }
+    return _hudView;
+}
+
+- (UIActivityIndicatorView *)spinnerView {
+    if (_spinnerView == nil) {
+        _spinnerView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
+		_spinnerView.hidesWhenStopped = YES;
+		_spinnerView.bounds = CGRectMake(0, 0, 37, 37);
+    }
+    
+    if(!_spinnerView.superview)
+        [self.hudView addSubview:_spinnerView];
+    
+    return _spinnerView;
+}
+
+- (UILabel *)stringLabel {
+    if (_stringLabel == nil) {
+        _stringLabel = [[UILabel alloc] initWithFrame:CGRectZero];
+		_stringLabel.textColor = [UIColor whiteColor];
+		_stringLabel.backgroundColor = [UIColor clearColor];
+		_stringLabel.adjustsFontSizeToFitWidth = YES;
+		_stringLabel.textAlignment = UITextAlignmentCenter;
+		_stringLabel.baselineAdjustment = UIBaselineAdjustmentAlignCenters;
+		_stringLabel.font = [UIFont boldSystemFontOfSize:16];
+		_stringLabel.shadowColor = [UIColor blackColor];
+		_stringLabel.shadowOffset = CGSizeMake(0, -1);
+        _stringLabel.numberOfLines = 0;
+    }
+    
+    if(!_stringLabel.superview)
+        [self.hudView addSubview:_stringLabel];
+    
+    return _stringLabel;
+}
+
+- (UIImageView *)imageView {
+    if (_imageView == nil)
+        _imageView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, 28, 28)];
+    
+    if(!_imageView.superview)
+        [self.hudView addSubview:_imageView];
+    
+    return _imageView;
+}
+
+- (CGFloat)visibleKeyboardHeight {
+        
+    UIWindow *keyboardWindow = nil;
+    for (UIWindow *testWindow in [[UIApplication sharedApplication] windows]) {
+        if(![[testWindow class] isEqual:[UIWindow class]]) {
+            keyboardWindow = testWindow;
+            break;
+        }
+    }
+
+    // Locate UIKeyboard.  
+    UIView *foundKeyboard = nil;
+    for (__strong UIView *possibleKeyboard in [keyboardWindow subviews]) {
+        
+        // iOS 4 sticks the UIKeyboard inside a UIPeripheralHostView.
+        if ([[possibleKeyboard description] hasPrefix:@"<UIPeripheralHostView"]) {
+            possibleKeyboard = [[possibleKeyboard subviews] objectAtIndex:0];
+        }                                                                                
+        
+        if ([[possibleKeyboard description] hasPrefix:@"<UIKeyboard"]) {
+            foundKeyboard = possibleKeyboard;
+            break;
+        }
+    }
+        
+    if(foundKeyboard && foundKeyboard.bounds.size.height > 100)
+        return foundKeyboard.bounds.size.height;
+    
+    return 0;
+}
+
+#pragma mark -
+#pragma mark - Notifications
 
 - (void)registerNotifications {
-    [[NSNotificationCenter defaultCenter] addObserver:self 
-                                             selector:@selector(positionHUD:) 
-                                                 name:UIApplicationDidChangeStatusBarOrientationNotification 
-                                               object:nil];  
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(positionHUD:)
+                                                 name:UIApplicationDidChangeStatusBarOrientationNotification
+                                               object:nil];
     
-    [[NSNotificationCenter defaultCenter] addObserver:self 
-                                             selector:@selector(positionHUD:) 
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(positionHUD:)
                                                  name:UIKeyboardWillHideNotification
                                                object:nil];
     
-    [[NSNotificationCenter defaultCenter] addObserver:self 
-                                             selector:@selector(positionHUD:) 
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(positionHUD:)
                                                  name:UIKeyboardDidHideNotification
                                                object:nil];
     
-    [[NSNotificationCenter defaultCenter] addObserver:self 
-                                             selector:@selector(positionHUD:) 
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(positionHUD:)
                                                  name:UIKeyboardWillShowNotification
                                                object:nil];
     
-    [[NSNotificationCenter defaultCenter] addObserver:self 
-                                             selector:@selector(positionHUD:) 
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(positionHUD:)
                                                  name:UIKeyboardDidShowNotification
                                                object:nil];
 }
@@ -306,9 +568,9 @@
     CGPoint newCenter;
     CGFloat rotateAngle;
     
-    switch (orientation) { 
+    switch (orientation) {
         case UIInterfaceOrientationPortraitUpsideDown:
-            rotateAngle = M_PI; 
+            rotateAngle = M_PI;
             newCenter = CGPointMake(posX, orientationFrame.size.height-posY);
             break;
         case UIInterfaceOrientationLandscapeLeft:
@@ -323,239 +585,21 @@
             rotateAngle = 0.0;
             newCenter = CGPointMake(posX, posY);
             break;
-    } 
+    }
     
     if(notification) {
-        [UIView animateWithDuration:animationDuration 
-                              delay:0 
-                            options:UIViewAnimationOptionAllowUserInteraction 
+        [UIView animateWithDuration:animationDuration
+                              delay:0
+                            options:UIViewAnimationOptionAllowUserInteraction
                          animations:^{
                              [self moveToPoint:newCenter rotateAngle:rotateAngle];
                          } completion:NULL];
-    } 
+    }
     
     else {
         [self moveToPoint:newCenter rotateAngle:rotateAngle];
     }
     
-}
-
-- (void)moveToPoint:(CGPoint)newCenter rotateAngle:(CGFloat)angle {
-    self.hudView.transform = CGAffineTransformMakeRotation(angle); 
-    self.hudView.center = newCenter;
-}
-
-#pragma mark - Master show/dismiss methods
-
-- (void)showWithStatus:(NSString*)string maskType:(SVProgressHUDMaskType)hudMaskType networkIndicator:(BOOL)show {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if(!self.superview) {
-            [self.overlayWindow addSubview:self];
-        }
-            
-        self.fadeOutTimer = nil;
-        self.imageView.hidden = YES;
-        self.maskType = hudMaskType;
-        
-        [self setStatus:string];
-        [self.spinnerView startAnimating];
-        
-//        if(self.maskType != SVProgressHUDMaskTypeNone) {
-//            self.overlayWindow.userInteractionEnabled = YES;
-//        } else {
-//            self.overlayWindow.userInteractionEnabled = NO;
-//        }
-            self.overlayWindow.userInteractionEnabled = YES;
-        
-        [self.overlayWindow setHidden:NO];
-        [self positionHUD:nil];
-        
-        if(self.alpha != 1) {
-            [self registerNotifications];
-            self.hudView.transform = CGAffineTransformScale(self.hudView.transform, 1.3, 1.3);
-            
-            [UIView animateWithDuration:0.15
-                                  delay:0
-                                options:UIViewAnimationOptionAllowUserInteraction | UIViewAnimationCurveEaseOut | UIViewAnimationOptionBeginFromCurrentState
-                             animations:^{	
-                                 self.hudView.transform = CGAffineTransformScale(self.hudView.transform, 1/1.3, 1/1.3);
-                                 self.alpha = 1;
-                             }
-                             completion:NULL];
-        }
-        
-        if (!tapRecognizer) {
-            tapRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(singleTap:)];
-        }
-        [self.overlayWindow addGestureRecognizer:tapRecognizer];
-        
-        [self setNeedsDisplay];
-    });
-}
-
-
-- (void)singleTap:(id)sender {
-    if (self.shouldHide) {
-        [self dismiss];
-    }
-}
-
-- (void)dismissWithStatus:(NSString*)string error:(BOOL)error {
-	[self dismissWithStatus:string error:error afterDelay:0.9];
-}
-
-
-- (void)dismissWithStatus:(NSString *)string error:(BOOL)error afterDelay:(NSTimeInterval)seconds {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if(self.alpha != 1)
-            return;
-        
-        if(error)
-            self.imageView.image = [UIImage imageNamed:@"SVProgressHUD.bundle/error.png"];
-        else
-            self.imageView.image = [UIImage imageNamed:@"SVProgressHUD.bundle/success.png"];
-        
-        self.imageView.hidden = NO;
-        [self setStatus:string];
-        [self.spinnerView stopAnimating];
-        
-        self.fadeOutTimer = [NSTimer scheduledTimerWithTimeInterval:seconds target:self selector:@selector(dismiss) userInfo:nil repeats:NO];
-    });
-}
-
-- (void)dismiss {
-    dispatch_async(dispatch_get_main_queue(), ^{
-
-        [self.overlayWindow removeGestureRecognizer:tapRecognizer];
-        
-        [UIView animateWithDuration:0.15
-                              delay:0
-                            options:UIViewAnimationCurveEaseIn | UIViewAnimationOptionAllowUserInteraction
-                         animations:^{	
-                             self.hudView.transform = CGAffineTransformScale(self.hudView.transform, 0.8, 0.8);
-                             self.alpha = 0;
-                         }
-                         completion:^(BOOL finished){ 
-                             if(self.alpha == 0) {
-                                 [[NSNotificationCenter defaultCenter] removeObserver:self];
-                                 [hudView removeFromSuperview];
-                                 hudView = nil;
-
-                                 [overlayWindow removeFromSuperview];
-                                 overlayWindow = nil;
-                                 
-                                 // uncomment to make sure UIWindow is gone from app.windows
-                                 //NSLog(@"%@", [UIApplication sharedApplication].windows);
-                                 //NSLog(@"keyWindow = %@", [UIApplication sharedApplication].keyWindow);
-                             }
-                         }];
-    });
-}
-
-#pragma mark - Utilities
-
-+ (BOOL)isVisible {
-    return ([SVProgressHUD sharedView].alpha == 1);
-}
-
-
-#pragma mark - Getters
-
-- (UIWindow *)overlayWindow {
-    if(!overlayWindow) {
-        overlayWindow = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
-        overlayWindow.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-        overlayWindow.backgroundColor = [UIColor clearColor];
-        overlayWindow.userInteractionEnabled = NO;
-    }
-    return overlayWindow;
-}
-
-- (UIView *)hudView {
-    if(!hudView) {
-        hudView = [[UIView alloc] initWithFrame:CGRectZero];
-        hudView.layer.cornerRadius = 10;
-		hudView.backgroundColor = [UIColor colorWithWhite:0 alpha:0.8];
-        hudView.autoresizingMask = (UIViewAutoresizingFlexibleBottomMargin | UIViewAutoresizingFlexibleTopMargin |
-                                    UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleLeftMargin);
-        
-        [self addSubview:hudView];
-    }
-    return hudView;
-}
-
-- (UILabel *)stringLabel {
-    if (stringLabel == nil) {
-        stringLabel = [[UILabel alloc] initWithFrame:CGRectZero];
-		stringLabel.textColor = [UIColor whiteColor];
-		stringLabel.backgroundColor = [UIColor clearColor];
-		stringLabel.adjustsFontSizeToFitWidth = YES;
-		stringLabel.textAlignment = UITextAlignmentCenter;
-		stringLabel.baselineAdjustment = UIBaselineAdjustmentAlignCenters;
-		stringLabel.font = [UIFont boldSystemFontOfSize:16];
-		stringLabel.shadowColor = [UIColor blackColor];
-		stringLabel.shadowOffset = CGSizeMake(0, -1);
-        stringLabel.numberOfLines = 0;
-    }
-    
-    if(!stringLabel.superview)
-        [self.hudView addSubview:stringLabel];
-    
-    return stringLabel;
-}
-
-- (UIImageView *)imageView {
-    if (imageView == nil)
-        imageView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, 28, 28)];
-    
-    if(!imageView.superview)
-        [self.hudView addSubview:imageView];
-    
-    return imageView;
-}
-
-- (UIActivityIndicatorView *)spinnerView {
-    if (spinnerView == nil) {
-        spinnerView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
-		spinnerView.hidesWhenStopped = YES;
-		spinnerView.bounds = CGRectMake(0, 0, 37, 37);
-    }
-    
-    if(!spinnerView.superview)
-        [self.hudView addSubview:spinnerView];
-    
-    return spinnerView;
-}
-
-- (CGFloat)visibleKeyboardHeight {
-        
-    UIWindow *keyboardWindow = nil;
-    for (UIWindow *testWindow in [[UIApplication sharedApplication] windows]) {
-        if(![[testWindow class] isEqual:[UIWindow class]]) {
-            keyboardWindow = testWindow;
-            break;
-        }
-    }
-
-    // Locate UIKeyboard.  
-    UIView *foundKeyboard = nil;
-    for (__strong UIView *possibleKeyboard in [keyboardWindow subviews]) {
-        
-        // iOS 4 sticks the UIKeyboard inside a UIPeripheralHostView.
-        if ([[possibleKeyboard description] hasPrefix:@"<UIPeripheralHostView"]) {
-            possibleKeyboard = [[possibleKeyboard subviews] objectAtIndex:0];
-        }                                                                                
-        
-        if ([[possibleKeyboard description] hasPrefix:@"<UIKeyboard"]) {
-            foundKeyboard = possibleKeyboard;
-            break;
-        }
-    }
-        
-    if(foundKeyboard && foundKeyboard.bounds.size.height > 100)
-        return foundKeyboard.bounds.size.height;
-    
-    return 0;
 }
 
 @end

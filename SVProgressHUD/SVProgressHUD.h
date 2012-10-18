@@ -10,6 +10,8 @@
 #import <UIKit/UIKit.h>
 #import <AvailabilityMacros.h>
 
+#define SVProgressHUDTappedNotification @"SVProgressHUDTappedNotification"
+
 enum {
     SVProgressHUDMaskTypeNone = 1, // allow user interactions while HUD is displayed
     SVProgressHUDMaskTypeClear, // don't allow
@@ -42,5 +44,6 @@ typedef NSUInteger SVProgressHUDMaskType;
 + (BOOL)isVisible;
 
 + (void)setShouldHideByTap:(BOOL)shouldHide;
++ (void)setShouldRecieveTapInHudView:(BOOL)shouldRecieveTapInHudView;
 
 @end
