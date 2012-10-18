@@ -17,10 +17,6 @@
 @property (nonatomic, strong, readonly) NSTimer *fadeOutTimer;
 
 @property (nonatomic, strong, readonly) UIWindow *overlayWindow;
-@property (nonatomic, strong, readonly) UIView *hudView;
-@property (nonatomic, strong, readonly) UILabel *stringLabel;
-@property (nonatomic, strong, readonly) UIImageView *imageView;
-@property (nonatomic, strong, readonly) UIActivityIndicatorView *spinnerView;
 
 @property (nonatomic, readonly) CGFloat visibleKeyboardHeight;
 

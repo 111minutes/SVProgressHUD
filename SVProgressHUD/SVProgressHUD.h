@@ -23,6 +23,11 @@ typedef NSUInteger SVProgressHUDMaskType;
 
 @interface SVProgressHUD : UIView
 
+@property (nonatomic, strong, readonly) UIView *hudView;
+@property (nonatomic, strong, readonly) UILabel *stringLabel;
+@property (nonatomic, strong, readonly) UIImageView *imageView;
+@property (nonatomic, strong, readonly) UIActivityIndicatorView *spinnerView;
+
 + (void)show;
 + (void)showWithStatus:(NSString*)status;
 + (void)showWithStatus:(NSString*)status maskType:(SVProgressHUDMaskType)maskType;
