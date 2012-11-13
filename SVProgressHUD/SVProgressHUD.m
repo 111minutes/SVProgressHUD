@@ -24,11 +24,23 @@
 @property (nonatomic, assign) BOOL shouldRecieveTapInHudView;
 
 - (void)setStatus:(NSString *)string;
-- (void)showWithStatus:(NSString*)string maskType:(SVProgressHUDMaskType)hudMaskType networkIndicator:(BOOL)show;
-- (void)showImage:(UIImage*)image status:(NSString*)status duration:(NSTimeInterval)duration;
+
+- (void)showWithStatus:(NSString *)string
+              maskType:(SVProgressHUDMaskType)hudMaskType
+      networkIndicator:(BOOL)show;
+- (void)showWithStatus:(NSString *)string
+              maskType:(SVProgressHUDMaskType)hudMaskType
+      networkIndicator:(BOOL)show
+              duration:(NSTimeInterval)duration;
+
+- (void)showImage:(UIImage *)image
+           status:(NSString *)status
+         duration:(NSTimeInterval)duration;
+
 - (void)dismiss;
 
 - (void)registerNotifications;
+- (void)scheduleFadeOutTimerWithDuration:(NSTimeInterval)duration;
 - (void)moveToPoint:(CGPoint)newCenter rotateAngle:(CGFloat)angle;
 - (void)positionHUD:(NSNotification*)notification;
 
@@ -89,8 +101,12 @@
     [[SVProgressHUD sharedView] showWithStatus:nil maskType:maskType networkIndicator:NO];
 }
 
-+ (void)showWithStatus:(NSString*)status maskType:(SVProgressHUDMaskType)maskType {
++ (void)showWithStatus:(NSString *)status maskType:(SVProgressHUDMaskType)maskType {
     [[SVProgressHUD sharedView] showWithStatus:status maskType:maskType networkIndicator:NO];
+}
+
++ (void)showWithStatus:(NSString *)status maskType:(SVProgressHUDMaskType)maskType duration:(NSTimeInterval)duration {
+    [[SVProgressHUD sharedView] showWithStatus:status maskType:maskType networkIndicator:NO duration:duration];
 }
 
 #pragma mark - Show then dismiss methods
@@ -100,8 +116,7 @@
 }
 
 + (void)showSuccessWithStatus:(NSString *)string duration:(NSTimeInterval)duration {
-    [SVProgressHUD show];
-    [SVProgressHUD showImage:[UIImage imageNamed:@"SVProgressHUD.bundle/success.png"] status:string];
+    [SVProgressHUD showImage:[UIImage imageNamed:@"SVProgressHUD.bundle/success.png"] status:string duration:duration];
 }
 
 + (void)showErrorWithStatus:(NSString *)string {
@@ -109,12 +124,15 @@
 }
 
 + (void)showErrorWithStatus:(NSString *)string duration:(NSTimeInterval)duration {
-    [SVProgressHUD show];
-    [SVProgressHUD showImage:[UIImage imageNamed:@"SVProgressHUD.bundle/error.png"] status:string];
+    [SVProgressHUD showImage:[UIImage imageNamed:@"SVProgressHUD.bundle/error.png"] status:string duration:duration];
 }
 
 + (void)showImage:(UIImage *)image status:(NSString *)string {
-    [[SVProgressHUD sharedView] showImage:image status:string duration:1.0];
+    [[SVProgressHUD sharedView] showImage:image status:string duration:2.0];
+}
+
++ (void)showImage:(UIImage *)image status:(NSString *)string duration:(NSTimeInterval)duration {
+    [[SVProgressHUD sharedView] showImage:image status:string duration:duration];
 }
 
 #pragma mark - Dismiss Methods
@@ -123,20 +141,22 @@
 	[[SVProgressHUD sharedView] dismiss];
 }
 
-+ (void)dismissWithSuccess:(NSString*)string {
+#pragma mark - DEPRECATED methods
+
++ (void)dismissWithSuccess:(NSString *)string {
 	[SVProgressHUD showSuccessWithStatus:string];
 }
 
 + (void)dismissWithSuccess:(NSString *)string afterDelay:(NSTimeInterval)seconds {
-    [[SVProgressHUD sharedView] showImage:[UIImage imageNamed:@"SVProgressHUD.bundle/success.png"] status:string duration:seconds];
+    [SVProgressHUD showImage:[UIImage imageNamed:@"SVProgressHUD.bundle/success.png"] status:string];
 }
 
-+ (void)dismissWithError:(NSString*)string {
++ (void)dismissWithError:(NSString *)string {
 	[SVProgressHUD showErrorWithStatus:string];
 }
 
 + (void)dismissWithError:(NSString *)string afterDelay:(NSTimeInterval)seconds {
-    [[SVProgressHUD sharedView] showImage:[UIImage imageNamed:@"SVProgressHUD.bundle/error.png"] status:string duration:seconds];
+    [SVProgressHUD showImage:[UIImage imageNamed:@"SVProgressHUD.bundle/error.png"] status:string];
 }
 
 #pragma mark -
@@ -251,14 +271,23 @@
         [_fadeOutTimer invalidate];
         _fadeOutTimer = nil;
     }
-    
     if (newTimer) {
         _fadeOutTimer = newTimer;
     }
 }
 
+- (void)scheduleFadeOutTimerWithDuration:(NSTimeInterval)duration {
+    if (duration >= 0.0) {
+        self.fadeOutTimer = [NSTimer scheduledTimerWithTimeInterval:duration
+                                                             target:self
+                                                           selector:@selector(dismiss)
+                                                           userInfo:nil
+                                                            repeats:NO];
+    }
+}
+
 - (void)moveToPoint:(CGPoint)newCenter rotateAngle:(CGFloat)angle {
-    self.hudView.transform = CGAffineTransformMakeRotation(angle); 
+    self.hudView.transform = CGAffineTransformMakeRotation(angle);
     self.hudView.center = newCenter;
 }
 
@@ -273,9 +302,14 @@
 
 #pragma mark - Master show/dismiss methods
 
+- (void)showWithStatus:(NSString *)string maskType:(SVProgressHUDMaskType)hudMaskType networkIndicator:(BOOL)show {
+    [self showWithStatus:string maskType:hudMaskType networkIndicator:show duration:-1.0];
+}
+
 - (void)showWithStatus:(NSString *)string
               maskType:(SVProgressHUDMaskType)hudMaskType
-      networkIndicator:(BOOL)show {
+      networkIndicator:(BOOL)show
+              duration:(NSTimeInterval)duration {
     
     dispatch_async(dispatch_get_main_queue(), ^{
         
@@ -295,12 +329,12 @@
 //        } else {
 //            self.overlayWindow.userInteractionEnabled = NO;
 //        }
-            self.overlayWindow.userInteractionEnabled = YES;
+        self.overlayWindow.userInteractionEnabled = YES;
         
         [self.overlayWindow setHidden:NO];
         [self positionHUD:nil];
         
-        if(self.alpha != 1) {
+        if (self.alpha != 1) {
             [self registerNotifications];
             self.hudView.transform = CGAffineTransformScale(self.hudView.transform, 1.3, 1.3);
             
@@ -311,7 +345,11 @@
                                  self.hudView.transform = CGAffineTransformScale(self.hudView.transform, 1/1.3, 1/1.3);
                                  self.alpha = 1;
                              }
-                             completion:NULL];
+                             completion:^(BOOL finished) {
+                                [self scheduleFadeOutTimerWithDuration:duration];
+                             }];
+        } else {
+            [self scheduleFadeOutTimerWithDuration:duration];
         }
         
         if (!_tapRecognizer) {
@@ -342,11 +380,7 @@
         [self setStatus:string];
         [self.spinnerView stopAnimating];
         
-        self.fadeOutTimer = [NSTimer scheduledTimerWithTimeInterval:duration
-                                                             target:self
-                                                           selector:@selector(dismiss)
-                                                           userInfo:nil
-                                                            repeats:NO];
+        [self scheduleFadeOutTimerWithDuration:duration];
     });
 }
 
