@@ -36,7 +36,7 @@ typedef NSUInteger SVProgressHUDMaskType;
 
 + (void)setStatus:(NSString*)string; // change the HUD loading status while it's showing
 
-// stops the activity indicator, shows a glyph + status, and dismisses HUD 1s later
+// stops the activity indicator, shows a glyph + status, and dismisses HUD 2s later
 + (void)showSuccessWithStatus:(NSString*)string;
 + (void)showErrorWithStatus:(NSString *)string;
 + (void)showImage:(UIImage*)image status:(NSString*)status; // use 28x28 white pngs
