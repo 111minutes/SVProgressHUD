@@ -31,31 +31,32 @@ typedef NSUInteger SVProgressHUDMaskType;
 + (void)show;
 + (void)showWithMaskType:(SVProgressHUDMaskType)maskType;
 
-+ (void)showWithStatus:(NSString*)status;
-+ (void)showWithStatus:(NSString*)status maskType:(SVProgressHUDMaskType)maskType;
++ (void)showWithStatus:(NSString *)status;
++ (void)showWithStatus:(NSString *)status maskType:(SVProgressHUDMaskType)maskType;
 
-+ (void)setStatus:(NSString*)string; // change the HUD loading status while it's showing
++ (void)setStatus:(NSString *)string; // change the HUD loading status while it's showing
 
 // stops the activity indicator, shows a glyph + status, and dismisses HUD 2s later
-+ (void)showSuccessWithStatus:(NSString*)string;
++ (void)showSuccessWithStatus:(NSString *)string;
 + (void)showErrorWithStatus:(NSString *)string;
-+ (void)showImage:(UIImage*)image status:(NSString*)status; // use 28x28 white pngs
++ (void)showImage:(UIImage *)image status:(NSString *)status; // use 28x28 white pngs
++ (void)showImage:(UIImage *)image status:(NSString *)status duration:(NSTimeInterval)duration;
 
 + (void)dismiss;
 
 + (BOOL)isVisible;
 
-// deprecated June 9th; custom durations encourages uncessarily long status strings (inappropriate, use UIAlertView instead)
-+ (void)showSuccessWithStatus:(NSString *)string duration:(NSTimeInterval)duration DEPRECATED_ATTRIBUTE;
-+ (void)showErrorWithStatus:(NSString *)string duration:(NSTimeInterval)duration DEPRECATED_ATTRIBUTE;
++ (void)showSuccessWithStatus:(NSString *)string duration:(NSTimeInterval)duration;
++ (void)showErrorWithStatus:(NSString *)string duration:(NSTimeInterval)duration;
 
++ (void)setShouldHideByTap:(BOOL)shouldHide;
++ (void)setShouldRecieveTapInHudView:(BOOL)shouldRecieveTapInHudView;
+
+// deprecated June 9th; custom durations encourages uncessarily long status strings (inappropriate, use UIAlertView instead)
 // deprecated June 9th; use the showWithSuccess/Error methods instead
 + (void)dismissWithSuccess:(NSString*)successString DEPRECATED_ATTRIBUTE; 
 + (void)dismissWithSuccess:(NSString*)successString afterDelay:(NSTimeInterval)seconds DEPRECATED_ATTRIBUTE;
 + (void)dismissWithError:(NSString*)errorString DEPRECATED_ATTRIBUTE;
 + (void)dismissWithError:(NSString*)errorString afterDelay:(NSTimeInterval)seconds DEPRECATED_ATTRIBUTE;
-
-+ (void)setShouldHideByTap:(BOOL)shouldHide;
-+ (void)setShouldRecieveTapInHudView:(BOOL)shouldRecieveTapInHudView;
 
 @end

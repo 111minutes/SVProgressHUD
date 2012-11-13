@@ -99,12 +99,24 @@
     [SVProgressHUD showImage:[UIImage imageNamed:@"SVProgressHUD.bundle/success.png"] status:string];
 }
 
++ (void)showSuccessWithStatus:(NSString *)string duration:(NSTimeInterval)duration {
+    [SVProgressHUD showImage:[UIImage imageNamed:@"SVProgressHUD.bundle/success.png"] status:string duration:duration];
+}
+
 + (void)showErrorWithStatus:(NSString *)string {
     [SVProgressHUD showImage:[UIImage imageNamed:@"SVProgressHUD.bundle/error.png"] status:string];
 }
 
++ (void)showErrorWithStatus:(NSString *)string duration:(NSTimeInterval)duration {
+    [SVProgressHUD showImage:[UIImage imageNamed:@"SVProgressHUD.bundle/error.png"] status:string duration:duration];
+}
+
 + (void)showImage:(UIImage *)image status:(NSString *)string {
     [[SVProgressHUD sharedView] showImage:image status:string duration:2.0];
+}
+
++ (void)showImage:(UIImage *)image status:(NSString *)string duration:(NSTimeInterval)duration {
+    [[SVProgressHUD sharedView] showImage:image status:string duration:duration];
 }
 
 #pragma mark - Dismiss Methods
@@ -115,28 +127,20 @@
 
 #pragma mark - DEPRECATED methods
 
-+ (void)showSuccessWithStatus:(NSString *)string duration:(NSTimeInterval)duration {
-    [SVProgressHUD showImage:[UIImage imageNamed:@"SVProgressHUD.bundle/success.png"] status:string];
-}
-
-+ (void)showErrorWithStatus:(NSString *)string duration:(NSTimeInterval)duration {
-    [SVProgressHUD showImage:[UIImage imageNamed:@"SVProgressHUD.bundle/error.png"] status:string];
-}
-
-+ (void)dismissWithSuccess:(NSString*)string {
++ (void)dismissWithSuccess:(NSString *)string {
 	[SVProgressHUD showSuccessWithStatus:string];
 }
 
 + (void)dismissWithSuccess:(NSString *)string afterDelay:(NSTimeInterval)seconds {
-    [[SVProgressHUD sharedView] showImage:[UIImage imageNamed:@"SVProgressHUD.bundle/success.png"] status:string duration:seconds];
+    [SVProgressHUD showImage:[UIImage imageNamed:@"SVProgressHUD.bundle/success.png"] status:string];
 }
 
-+ (void)dismissWithError:(NSString*)string {
++ (void)dismissWithError:(NSString *)string {
 	[SVProgressHUD showErrorWithStatus:string];
 }
 
 + (void)dismissWithError:(NSString *)string afterDelay:(NSTimeInterval)seconds {
-    [[SVProgressHUD sharedView] showImage:[UIImage imageNamed:@"SVProgressHUD.bundle/error.png"] status:string duration:seconds];
+    [SVProgressHUD showImage:[UIImage imageNamed:@"SVProgressHUD.bundle/error.png"] status:string];
 }
 
 #pragma mark -
