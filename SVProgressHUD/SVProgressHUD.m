@@ -487,7 +487,6 @@
 }
 
 - (CGFloat)visibleKeyboardHeight {
-        
     UIWindow *keyboardWindow = nil;
     for (UIWindow *testWindow in [[UIApplication sharedApplication] windows]) {
         if(![[testWindow class] isEqual:[UIWindow class]]) {
@@ -495,24 +494,11 @@
             break;
         }
     }
-
-    // Locate UIKeyboard.  
-    UIView *foundKeyboard = nil;
+    
     for (__strong UIView *possibleKeyboard in [keyboardWindow subviews]) {
-        
-        // iOS 4 sticks the UIKeyboard inside a UIPeripheralHostView.
-        if ([[possibleKeyboard description] hasPrefix:@"<UIPeripheralHostView"]) {
-            possibleKeyboard = [[possibleKeyboard subviews] objectAtIndex:0];
-        }                                                                                
-        
-        if ([[possibleKeyboard description] hasPrefix:@"<UIKeyboard"]) {
-            foundKeyboard = possibleKeyboard;
-            break;
-        }
+        if([possibleKeyboard isKindOfClass:NSClassFromString(@"UIPeripheralHostView")] || [possibleKeyboard isKindOfClass:NSClassFromString(@"UIKeyboard")])
+            return possibleKeyboard.bounds.size.height;
     }
-        
-    if(foundKeyboard && foundKeyboard.bounds.size.height > 100)
-        return foundKeyboard.bounds.size.height;
     
     return 0;
 }
