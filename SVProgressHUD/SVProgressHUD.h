@@ -60,4 +60,20 @@ typedef NSUInteger SVProgressHUDMaskType;
 + (void)dismissWithError:(NSString*)errorString DEPRECATED_ATTRIBUTE;
 + (void)dismissWithError:(NSString*)errorString afterDelay:(NSTimeInterval)seconds DEPRECATED_ATTRIBUTE;
 
+- (void)setStatus:(NSString *)string;
+
+- (void)showWithStatus:(NSString *)string
+              maskType:(SVProgressHUDMaskType)hudMaskType
+      networkIndicator:(BOOL)show;
+- (void)showWithStatus:(NSString *)string
+              maskType:(SVProgressHUDMaskType)hudMaskType
+      networkIndicator:(BOOL)show
+              duration:(NSTimeInterval)duration;
+
+- (void)showImage:(UIImage *)image
+           status:(NSString *)status
+         duration:(NSTimeInterval)duration;
+
+- (void)dismiss;
+
 @end
